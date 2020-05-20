@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: bucket-secret
+  namespace: app
+type: Opaque
+data:
+  gcloud.json: {{GCLOUD_AUTH}}

@@ -1,0 +1,33 @@
+apiVersion: networking.gke.io/v1beta1
+kind: ManagedCertificate
+metadata:
+  name: app-cert
+  namespace: app
+spec:
+  domains:
+    - {{DOMAIN_NAME}}
+---
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: app-ingress
+  namespace: app
+  annotations:
+    kubernetes.io/ingress.global-static-ip-name: {{GOOGLE_GLOBAL_IP}}
+    networking.gke.io/managed-certificates: app-cert
+spec:
+  backend:
+    serviceName: web
+    servicePort: 9998
+  rules:
+  - http:
+      paths:
+      - path: /api/*
+        backend:
+          serviceName: api
+          servicePort: 9999
+      - path: /*
+        backend:
+          serviceName: web
+          servicePort: 9998
+

@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  namespace: app
+  labels:
+    app: web
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+      - name: web
+        image: demo/web:{{GIT_COMMIT}}
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3000
+        env:
+        - name: API
+          value: http://api:9999
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 512Mi
+          requests:
+            cpu: 250m
+            memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+  namespace: app
+  labels:
+    app: web
+spec:
+  type: NodePort
+  ports:
+  - port: 9998
+    targetPort: 3000
+  selector:
+    app: web
+---
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: web
+  namespace: app
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: web
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 50

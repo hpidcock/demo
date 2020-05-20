@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: app
+  labels:
+    app: api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      containers:
+      - name: api
+        image: demo/api:{{GIT_COMMIT}}
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 80
+        command: api
+        args:
+        - --redis=rfs-redis:26379
+        - --redis-master-name=mymaster
+        - --bucket-credentials=/etc/config/gcloud.json
+        volumeMounts:
+        - name: bucket-secret
+          mountPath: "/etc/config/"
+          readOnly: true
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 256Mi
+          requests:
+            cpu: 250m
+            memory: 256Mi
+      volumes:
+      - name: bucket-secret
+        secret:
+          secretName: bucket-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+  namespace: app
+  labels:
+    app: api
+spec:
+  type: NodePort
+  ports:
+  - port: 9999
+    targetPort: 80
+  selector:
+    app: api
+---
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: api
+  namespace: app
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: api
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 50
